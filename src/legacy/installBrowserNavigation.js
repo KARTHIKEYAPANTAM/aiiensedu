@@ -593,8 +593,8 @@ export async function startBrowserNavigation() {
     return;
   }
   if (!hasSession) {
-    const requestedPage = appPages.find((page) => page.path === hash);
-    if (requestedPage?.role === 'public' && hash !== '/auth') {
+    const requestedPage = getPageByPath(hash);
+    if (requestedPage && (requestedPage.role === 'public' || requestedPage.role === 'onboarding')) {
       await applyRoute(hash);
     } else {
       if (isAuthBootstrapLocked()) return;

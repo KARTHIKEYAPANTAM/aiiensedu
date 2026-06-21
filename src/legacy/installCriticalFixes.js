@@ -58,6 +58,38 @@ export function installCriticalFixes() {
   window.__aimeasyCentralAuthInstalled = true;
   window.__aimeasyAuthBootstrapComplete = true;
 
+  if (!window.__aimeasyLandingClicksInstalled) {
+    window.__aimeasyLandingClicksInstalled = true;
+    document.addEventListener('click', (event) => {
+      const adminToggle = event.target.closest('#admin-icon-btn, .admin-icon-btn');
+      if (adminToggle) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.toggleAdminDropdown?.(event);
+        return;
+      }
+      const adminItem = event.target.closest('.admin-dropdown-item');
+      if (adminItem) {
+        event.preventDefault();
+        event.stopPropagation();
+        const label = (adminItem.textContent || '').toLowerCase();
+        window.openAdminLogin?.(label.includes('sub admin') ? 'subadmin' : 'admin');
+        return;
+      }
+      const roleCard = event.target.closest('.role-card');
+      if (roleCard && document.getElementById('screen-landing')?.classList.contains('active')) {
+        if (roleCard.id === 'role-student' || roleCard.classList.contains('student')) {
+          window.selectRoleAndNavigate?.('student');
+        } else if (roleCard.id === 'role-creator' || roleCard.classList.contains('teacher')) {
+          window.selectRoleAndNavigate?.('content_creator');
+        }
+      }
+      if (!event.target.closest('#admin-dropdown-wrap')) {
+        document.getElementById('admin-dropdown')?.classList.remove('open');
+      }
+    }, true);
+  }
+
   function getStoredLoginPortal() {
     return sessionStorage.getItem('aimeasy_login_portal') || localStorage.getItem('aimeasy_login_portal_backup');
   }
@@ -572,6 +604,7 @@ if (
         }
         window.APP.session = true;
         window.showLoading?.('Saving your profile...');
+        window.APP.user.role = normalizeRole(window.APP.user.role || window.APP?.role) || ROLE.STUDENT;
         const { profile, error } = await upsertProfileFromLegacy(window.APP.user, {
           id: window.APP.user.id || window.APP.user.googleId,
           email: window.APP.user.email,
@@ -643,6 +676,7 @@ if (
       }
 
       window.showLoading?.('Saving your profile...');
+      window.APP.user.role = normalizeRole(window.APP.user.role || window.APP?.role) || ROLE.STUDENT;
       const { profile, error } = await upsertProfileFromLegacy(window.APP.user, {
         id: window.APP.user.id || window.APP.user.googleId,
         email: window.APP.user.email,
@@ -817,8 +851,23 @@ if (!/^[0-9]{10}$/.test(phone)) {
         if (r?.action?.kind === 'legacySubject' && r.action.raw) {
           window.openSubject?.(r.action.raw);
         } else if (r?.action?.kind === 'subject') {
-          window.showToast?.('Open subject: ' + r.label, 'blue');
           window.navigateTo?.('subjects');
+          window.setTimeout(async () => {
+            if (typeof window.renderSubjects === 'function') await window.renderSubjects();
+            const subject = window.APP?.subjects?.find(
+              (s) => s.id === r.action.id || s.name === r.action.name,
+            );
+            if (subject) {
+              window.openSubject?.(subject.id);
+              window.showToast?.(`Opened ${r.label}`, 'green');
+            } else {
+              window.showToast?.(`Subject: ${r.label}`, 'blue');
+            }
+          }, 200);
+        } else if (r?.action?.kind === 'content') {
+          window.navigateTo?.('unit-content');
+          window.switchTab?.(r.action.item?.content_type === 'note' ? 'notes' : r.action.item?.content_type === 'pyq' ? 'pyq' : r.action.item?.content_type === 'iq' ? 'iq' : 'videos');
+          window.showToast?.(`Opened ${r.label}`, 'green');
         } else {
           window.navigateTo?.('unit-content');
           window.switchTab?.('videos');

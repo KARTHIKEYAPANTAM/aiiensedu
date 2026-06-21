@@ -123,8 +123,9 @@ export async function confirmLogout() {
   }
 
   setTimeout(() => showScreen('screen-landing'), 500);
-  document.getElementById('chat-fab').style.display = 'none';
-  document.getElementById('chat-window').classList.remove('open');
+  const chatFab = document.getElementById('chat-fab');
+  if (chatFab) chatFab.style.display = 'none';
+  document.getElementById('chat-window')?.classList.remove('open');
 }
 
 export function syncGoogleAuthScreen() {

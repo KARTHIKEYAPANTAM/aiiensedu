@@ -307,20 +307,44 @@ export async function ensureProfileForAuthUser(authUser, selectedRole = ROLE.STU
   return { profile: data, error: null, created: true };
 }
 
+function logProfileUpsertError(label, error, payload) {
+  if (!error) return;
+  console.error(`[PROFILE] ${label} failed`, {
+    code: error.code,
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    role: payload?.role,
+    id: payload?.id,
+  });
+}
+
 async function upsertRoleScopedProfile(row, authUserId) {
   forgetProfile(authUserId);
+  const payload = {
+    ...row,
+    id: authUserId,
+    role: normalizeRole(row.role) || ROLE.STUDENT,
+  };
+  console.log('PROFILE SAVE PAYLOAD', payload);
+  console.log('ROLE BEFORE SAVE', row.role);
+  console.log('NORMALIZED ROLE', payload.role);
+
   const roleScoped = await supabase
     .from(ROLE_PROFILE_TABLE)
-    .upsert({ ...row, id: authUserId }, { onConflict: 'id' })
+    .upsert(payload, { onConflict: 'id' })
     .select()
     .single();
+  if (roleScoped.error) logProfileUpsertError(ROLE_PROFILE_TABLE, roleScoped.error, payload);
   if (!roleScoped.error || !isMissingTableError(roleScoped.error)) return roleScoped;
 
-  return supabase
+  const legacy = await supabase
     .from(LEGACY_PROFILE_TABLE)
-    .upsert({ ...row, id: authUserId }, { onConflict: 'id' })
+    .upsert(payload, { onConflict: 'id' })
     .select()
     .single();
+  if (legacy.error) logProfileUpsertError(LEGACY_PROFILE_TABLE, legacy.error, payload);
+  return legacy;
 }
 
 export async function ensureStudentProfile(authUser) {

@@ -3,6 +3,19 @@
 -- Fixes: students cannot read subjects/units/topics/videos/content_items
 -- ══════════════════════════════════════════════════════════════════════════
 
+-- ── 0. Table grants (fixes "permission denied for table subjects") ─────────
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT ON TABLE public.subjects TO anon, authenticated;
+GRANT SELECT ON TABLE public.units TO anon, authenticated;
+GRANT SELECT ON TABLE public.topics TO anon, authenticated;
+GRANT SELECT ON TABLE public.topic_videos TO anon, authenticated;
+GRANT SELECT ON TABLE public.content_items TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON TABLE public.subjects TO authenticated;
+GRANT INSERT, UPDATE, DELETE ON TABLE public.units TO authenticated;
+GRANT INSERT, UPDATE, DELETE ON TABLE public.topics TO authenticated;
+GRANT INSERT, UPDATE, DELETE ON TABLE public.topic_videos TO authenticated;
+GRANT INSERT, UPDATE, DELETE ON TABLE public.content_items TO authenticated;
+
 -- ── 1. Re-enable RLS on all curriculum tables ─────────────────────────────
 ALTER TABLE public.subjects      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.units         ENABLE ROW LEVEL SECURITY;

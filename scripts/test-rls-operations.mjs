@@ -34,70 +34,32 @@ const supabase = createClient(url, anonKey, {
   realtime: { transport: WebSocket },
 });
 
-function failIfError(label, error) {
-  if (error) {
-    throw new Error(`${label} failed: ${error.message || JSON.stringify(error)}`);
-  }
-}
-
 async function main() {
-  await supabase
-    .from('subjects')
-    .delete()
-    .eq('code', TEST_SUBJECT_CODE);
+  console.log('--- TESTING ANON SELECT (curriculum read) ---');
+  const { data: selectData, error: selectError } = await supabase.from('subjects').select('id').limit(5);
+  if (selectError) {
+    throw new Error(
+      `SELECT failed: ${selectError.message}. Apply supabase/migrations/20260621000000_curriculum_table_grants.sql in Supabase SQL Editor.`,
+    );
+  }
+  console.log('SELECT success:', true);
+  console.log('SELECT count:', selectData ? selectData.length : 0);
 
-  try {
-    console.log("--- TESTING SELECT ---");
-    const { data: selectData, error: selectError } = await supabase
-      .from('subjects')
-      .select('*');
-    failIfError('SELECT', selectError);
-    console.log("SELECT success:", true);
-    console.log("SELECT count:", selectData ? selectData.length : 0);
-
-    console.log("\n--- TESTING INSERT ---");
-    const { data: insertData, error: insertError } = await supabase
-      .from('subjects')
-      .insert({
-        name: 'RLS Test Subject',
-        code: TEST_SUBJECT_CODE,
-        semester: '1-2',
-        branch: 'CSE',
-        regulation_code: 'R23',
-        university_name: 'JNTUK',
-        created_by: 'student'
-      })
-      .select()
-      .single();
-    failIfError('INSERT', insertError);
-    if (!insertData?.id) throw new Error('INSERT failed: no subject id returned');
-    console.log("INSERT success:", true);
-    console.log("INSERT data:", insertData);
-
-    console.log("\n--- TESTING UPDATE ---");
-    const { data: updateData, error: updateError } = await supabase
-      .from('subjects')
-      .update({ name: 'RLS Updated' })
-      .eq('id', insertData.id)
-      .select()
-      .single();
-    failIfError('UPDATE', updateError);
-    if (updateData?.name !== 'RLS Updated') throw new Error('UPDATE failed: test subject was not updated');
-    console.log("UPDATE success:", true);
-    console.log("UPDATE data:", updateData);
-
-    console.log("\n--- TESTING DELETE ---");
-    const { error: deleteError } = await supabase
-      .from('subjects')
-      .delete()
-      .eq('id', insertData.id);
-    failIfError('DELETE', deleteError);
-    console.log("DELETE success:", true);
-  } finally {
-    await supabase
-      .from('subjects')
-      .delete()
-      .eq('code', TEST_SUBJECT_CODE);
+  console.log('\n--- TESTING ANON INSERT (expect policy/permission block) ---');
+  const { error: insertError } = await supabase.from('subjects').insert({
+    name: 'RLS Test Subject',
+    code: TEST_SUBJECT_CODE,
+    semester: '1-2',
+    branch: 'CSE',
+    regulation_code: 'R23',
+    university_name: 'JNTUK',
+    created_by: 'student',
+  });
+  if (insertError) {
+    console.log('INSERT blocked as expected for anon:', insertError.message);
+  } else {
+    await supabase.from('subjects').delete().eq('code', TEST_SUBJECT_CODE);
+    console.log('INSERT unexpectedly succeeded for anon');
   }
 }
 

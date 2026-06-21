@@ -514,6 +514,18 @@ create policy "content_items_auth_select"
 create policy "content_items_auth_write"
   on public.content_items for all to authenticated using (true) with check (true);
 
+grant usage on schema public to anon, authenticated;
+grant select on table public.subjects to anon, authenticated;
+grant select on table public.units to anon, authenticated;
+grant select on table public.topics to anon, authenticated;
+grant select on table public.topic_videos to anon, authenticated;
+grant select on table public.content_items to anon, authenticated;
+grant insert, update, delete on table public.subjects to authenticated;
+grant insert, update, delete on table public.units to authenticated;
+grant insert, update, delete on table public.topics to authenticated;
+grant insert, update, delete on table public.topic_videos to authenticated;
+grant insert, update, delete on table public.content_items to authenticated;
+
 -- Student dashboard persistence
 create table if not exists public.student_recent_subjects (
   id uuid primary key default gen_random_uuid(),

@@ -5,9 +5,19 @@ const sb = () => window.__AIMEASY_SUPABASE__;
 const todayKeyDb = (date = new Date()) => date.toISOString().slice(0, 10);
 const pctFromCgpa = (cgpa) => Math.max(0, Math.min(100, Number(cgpa || 0) * 9.5));
 
+function setAdminLoginType(type) {
+  if (window.AppState) window.AppState.adminLoginType = type;
+  window.adminLoginType = type;
+}
+
+function getAdminLoginType() {
+  return window.AppState?.adminLoginType || window.adminLoginType || 'admin';
+}
+
 export function toggleAdminDropdown(e) {
   if (e) e.stopPropagation();
   const dd = document.getElementById('admin-dropdown');
+  if (!dd) return;
   const isOpen = dd.classList.contains('open');
   dd.classList.toggle('open', !isOpen);
 }
@@ -19,17 +29,19 @@ export function closeAdminDropdownOutside() {
 export function openAdminLogin(type) {
   console.log(type === 'admin' ? '[ROLE CLICK] Admin' : '[ROLE CLICK] Sub Admin');
 
-  // Ensure adsense placeholders are not injected dynamically (legacy compat)
-  // (Used only for legacy UI; harmless if function doesn't exist.)
-
-  adminLoginType = type;
-  document.getElementById('admin-dropdown').classList.remove('open');
+  setAdminLoginType(type);
+  document.getElementById('admin-dropdown')?.classList.remove('open');
   const isAdmin = type === 'admin';
-  document.getElementById('admin-modal-icon').textContent = isAdmin ? '🛡️' : '👤';
-  document.getElementById('admin-modal-title').textContent = isAdmin ? 'Admin Login' : 'Sub Admin Login';
-  document.getElementById('admin-modal-sub').textContent = isAdmin
-    ? 'Enter your admin credentials to access the full dashboard'
-    : 'Enter your sub-admin credentials to manage content';
+  const modalIcon = document.getElementById('admin-modal-icon');
+  const modalTitle = document.getElementById('admin-modal-title');
+  const modalSub = document.getElementById('admin-modal-sub');
+  if (modalIcon) modalIcon.textContent = isAdmin ? '🛡️' : '👤';
+  if (modalTitle) modalTitle.textContent = isAdmin ? 'Admin Login' : 'Sub Admin Login';
+  if (modalSub) {
+    modalSub.textContent = isAdmin
+      ? 'Enter your admin credentials to access the full dashboard'
+      : 'Enter your sub-admin credentials to manage content';
+  }
   const userIdInput = document.getElementById('admin-userid');
   const passwordInput = document.getElementById('admin-password');
   [userIdInput, passwordInput].forEach((input) => {
@@ -38,30 +50,33 @@ export function openAdminLogin(type) {
     input.readOnly = false;
     input.style.removeProperty('pointer-events');
   });
-  userIdInput.value = '';
-  passwordInput.value = '';
-  document.getElementById('admin-login-err').style.display = 'none';
-  setModalOpenState('admin-login-modal', true);
-  setTimeout(() => userIdInput?.focus(), 0);
+  if (userIdInput) userIdInput.value = '';
+  if (passwordInput) passwordInput.value = '';
+  const errEl = document.getElementById('admin-login-err');
+  if (errEl) errEl.style.display = 'none';
+  window.setModalOpenState?.('admin-login-modal', true);
+  window.setTimeout(() => userIdInput?.focus(), 0);
 }
 
 export function closeAdminLogin() {
-  setModalOpenState('admin-login-modal', false);
+  window.setModalOpenState?.('admin-login-modal', false);
 }
 
 export async function submitAdminLogin() {
-  const uid = document.getElementById('admin-userid').value.trim();
-  const pwd = document.getElementById('admin-password').value.trim();
+  const uid = document.getElementById('admin-userid')?.value?.trim() || '';
+  const pwd = document.getElementById('admin-password')?.value?.trim() || '';
   const err = document.getElementById('admin-login-err');
   const client = window.__AIMEASY_SUPABASE__;
 
   if (!client) {
-    err.style.display = 'block';
-    err.innerHTML = '❌ Supabase client not initialized';
+    if (err) {
+      err.style.display = 'block';
+      err.innerHTML = '❌ Supabase client not initialized';
+    }
     return;
   }
 
-  if (adminLoginType === 'admin') {
+  if (getAdminLoginType() === 'admin') {
     const { data: admin, error } = await client
       .from('admin_accounts')
       .select('*')
@@ -74,16 +89,21 @@ export async function submitAdminLogin() {
     console.log('ADMIN LOGIN ERROR', error);
 
     if (error || !admin) {
-      err.style.display = 'block';
-      err.innerHTML = '❌ Invalid Admin username or password';
+      if (err) {
+        err.style.display = 'block';
+        err.innerHTML = '❌ Invalid Admin username or password';
+      }
       return;
     }
 
-    err.style.display = 'none';
+    if (err) err.style.display = 'none';
 
-    APP.role = 'admin';
-    APP.adminType = 'admin';
-    APP.user = admin;
+    if (window.APP) {
+      window.APP.role = 'admin';
+      window.APP.adminType = 'admin';
+      window.APP.user = admin;
+      window.APP.session = true;
+    }
 
     localStorage.setItem(
       'edusync_admin_session',
@@ -95,11 +115,11 @@ export async function submitAdminLogin() {
 
     closeAdminLogin();
 
-    showLoading('Logging in as Administrator...');
+    window.showLoading?.('Logging in as Administrator...');
 
-    setTimeout(() => {
-      hideLoading();
-      launchAdminDashboard();
+    window.setTimeout(() => {
+      window.hideLoading?.();
+      window.launchAdminDashboard?.();
     }, 800);
   } else {
     const { data: match, error: subAdminError } = await client
@@ -111,20 +131,26 @@ export async function submitAdminLogin() {
       .single();
 
     if (match) {
-      err.style.display = 'none';
-      APP.role = 'subadmin';
-      APP.adminType = 'subadmin';
-      APP.subAdminData = match;
+      if (err) err.style.display = 'none';
+      if (window.APP) {
+        window.APP.role = 'subadmin';
+        window.APP.adminType = 'subadmin';
+        window.APP.subAdminData = match;
+        window.APP.session = true;
+      }
       closeAdminLogin();
-      showLoading('Logging in as Sub Admin...');
-      setTimeout(() => {
-        hideLoading();
-        launchSubAdmin();
+      window.showLoading?.('Logging in as Sub Admin...');
+      window.setTimeout(() => {
+        window.hideLoading?.();
+        window.launchSubAdmin?.();
       }, 800);
     } else {
-      err.style.display = 'block';
-      err.innerHTML = '❌ Invalid Sub Admin username or password';
-      document.getElementById('admin-password').value = '';
+      if (err) {
+        err.style.display = 'block';
+        err.innerHTML = '❌ Invalid Sub Admin username or password';
+      }
+      const passwordInput = document.getElementById('admin-password');
+      if (passwordInput) passwordInput.value = '';
     }
   }
 }

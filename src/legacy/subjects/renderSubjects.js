@@ -17,13 +17,13 @@ async function waitForElement(id, timeout = 5000) {
 }
 
 export async function renderSubjects(arg) {
-    console.error('🔥 ORIGINAL renderSubjects EXECUTED');
+    console.log('[renderSubjects] executed');
     console.log('[renderSubjects] START');
     try {
-        const grid = await waitForElement('subjects-grid');
+        const grid = await waitForElement('subjects-grid', 1000);
         console.log('[renderSubjects] grid found', !!grid);
         if (!grid) {
-            console.error('[renderSubjects] subjects-grid not found after waiting.');
+            console.debug('[renderSubjects] skipped: subjects-grid not present yet.');
             return;
         }
 

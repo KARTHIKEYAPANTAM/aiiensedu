@@ -17,6 +17,7 @@ export function showLoading(text) {
 let toastTimeout;
 export function showToast(msg, type) {
   const t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg;
   t.className = `toast show ${type || ''}`;
   clearTimeout(toastTimeout);

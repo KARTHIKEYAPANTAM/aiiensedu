@@ -31,6 +31,9 @@
       <div class="admin-nav-item" id="sa-nav-curriculum" onclick="switchSASection('curriculum')">
         <span>🗂️</span> Curriculum
       </div>
+      <div class="admin-nav-item" id="sa-nav-urls" onclick="switchSASection('urls')">
+        <span>🔗</span> URL Approvals
+      </div>
     </nav>
     <div style="padding:1rem 0.8rem;border-top:1px solid var(--border);">
       <div class="admin-nav-item" onclick="subAdminLogout()" style="color:var(--red);">
@@ -51,6 +54,10 @@
         </div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="subAdminBack()">← Back</button>
+      <div class="notif-btn" onclick="openNotificationsModal()" style="position:relative;margin-left:8px;">
+        🔔
+        <div class="notif-dot" id="subadmin-notif-dot" style="display:none;"></div>
+      </div>
     </header>
     <div class="admin-content" id="sa-content">
       <!-- Content rendered by JS -->

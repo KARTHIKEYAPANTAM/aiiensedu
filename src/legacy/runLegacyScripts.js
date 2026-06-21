@@ -1,6 +1,6 @@
 const LEGACY_SCRIPT_ID = 'aimeasy-legacy-runtime';
 
-function installInlineHandlerFallbacks() {
+export function installInlineHandlerFallbacks() {
   const ensure = (name, fallback) => {
     if (typeof window[name] !== 'function' && typeof fallback === 'function') {
       window[name] = fallback;
@@ -42,6 +42,31 @@ function installInlineHandlerFallbacks() {
     const dropdown = document.getElementById('admin-dropdown');
     if (!dropdown) return;
     dropdown.classList.toggle('open', !dropdown.classList.contains('open'));
+  });
+
+  ensure('openAdminLogin', function openAdminLoginFallback(type) {
+    if (window.AppState) window.AppState.adminLoginType = type;
+    window.adminLoginType = type;
+    document.getElementById('admin-dropdown')?.classList.remove('open');
+    const isAdmin = type === 'admin';
+    const modalIcon = document.getElementById('admin-modal-icon');
+    const modalTitle = document.getElementById('admin-modal-title');
+    const modalSub = document.getElementById('admin-modal-sub');
+    if (modalIcon) modalIcon.textContent = isAdmin ? '🛡️' : '👤';
+    if (modalTitle) modalTitle.textContent = isAdmin ? 'Admin Login' : 'Sub Admin Login';
+    if (modalSub) {
+      modalSub.textContent = isAdmin
+        ? 'Enter your admin credentials to access the full dashboard'
+        : 'Enter your sub-admin credentials to manage content';
+    }
+    const errEl = document.getElementById('admin-login-err');
+    if (errEl) errEl.style.display = 'none';
+    window.setModalOpenState?.('admin-login-modal', true);
+    window.setTimeout(() => document.getElementById('admin-userid')?.focus(), 0);
+  });
+
+  ensure('closeAdminLogin', function closeAdminLoginFallback() {
+    window.setModalOpenState?.('admin-login-modal', false);
   });
 
   ensure('toggleAdminSidebar', function toggleAdminSidebarFallback() {

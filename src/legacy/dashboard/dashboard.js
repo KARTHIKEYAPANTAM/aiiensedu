@@ -398,14 +398,26 @@ export function openSubjectFromRecent(id) {
 export function buildHeatmap() {
   const hm = document.getElementById('heatmap');
   if (!hm) return;
+  hm.innerHTML = '';
+  const events = readStudentJson('edusync_study_activity', []);
+  const dayCounts = {};
+  events.forEach((event) => {
+    const day = event.day || (event.at ? String(event.at).slice(0, 10) : null);
+    if (day) dayCounts[day] = (dayCounts[day] || 0) + 1;
+  });
   const intensities = ['', 'h1', 'h2', 'h3', 'h4'];
-  for (let i = 0; i < 91; i++) {
+  const today = new Date();
+  for (let offset = 90; offset >= 0; offset--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - offset);
+    const key = date.toISOString().slice(0, 10);
+    const count = dayCounts[key] || 0;
+    const level = count === 0 ? '' : count <= 1 ? 'h1' : count <= 3 ? 'h2' : count <= 5 ? 'h3' : 'h4';
     const cell = document.createElement('div');
-    const r = Math.random();
-    cell.className = 'heatmap-cell ' + (i > 77 ? intensities[3 + Math.floor(r * 2)] : r > 0.4 ? intensities[1 + Math.floor(r * 3)] : '');
-    cell.style.animationDelay = (i * 8) + 'ms';
-    cell.style.animation = `heatmap-appear 0.3s ease ${i * 6}ms both`;
-    cell.title = `Day ${i + 1}`;
+    cell.className = `heatmap-cell ${intensities.includes(level) ? level : ''}`;
+    cell.title = `${key}: ${count} session${count === 1 ? '' : 's'}`;
+    cell.style.animationDelay = `${(90 - offset) * 6}ms`;
+    cell.style.animation = `heatmap-appear 0.3s ease ${(90 - offset) * 6}ms both`;
     hm.appendChild(cell);
   }
 }
@@ -1897,6 +1909,7 @@ export function updateStudentDashboardMetrics() {
   updateStudyStreak();
   const subjects = getStudentAssignedSubjects();
   const weekly = weeklyDashboardStats(subjects);
+  buildHeatmap();
 
   const metricVals = document.querySelectorAll('#page-dashboard .metric-card .metric-val');
   if (metricVals.length >= 3) {
@@ -1995,6 +2008,8 @@ export function updateStudentDashboardMetrics() {
       </div>
     `).join('');
   }
+
+  window.renderStudentBookmarksPanel?.();
 }
 
 export function addToRecentlyOpened(name, code, icon, id) {
@@ -2936,7 +2951,17 @@ export function installAiiensProductionExperiencePatch() {
           ${productionCards([
       ['Total Subjects', subjects.length, 'var(--primary)', 'Assigned scope only'],
       ['Total Units', units.length, 'var(--teal)', 'Across created subjects'],
-      ['Active Subjects', activeSubjects.length, 'var(--green)', 'With units or content']
+      ['Active Subjects', activeSubjects.length, 'var(--green)', 'With units or content'],
+      ['Branch Students', students.length, 'var(--blue)', 'Matching branch profile']
+    ])}
+        </div>
+        <div class="production-analytics-grid">
+          ${analyticsChart('Subjects by Semester', bySem, 'Distribution across semesters')}
+          ${analyticsChart('Content Library', contentActivity, 'Uploaded content in scope')}
+          ${engagementKpis([
+      ['Study Events', activity.length, 'teal'],
+      ['Pending URLs', read('edusync_url_requests', []).filter(r => r.status === 'pending').length, 'amber'],
+      ['Content Items', contentRows.length, 'primary']
     ])}
         </div>
       </div>`;
@@ -2967,6 +2992,19 @@ export function installAiiensProductionExperiencePatch() {
       ['Total PYQs', stats.pyqs, 'var(--green)', 'Database PYQs']
     ])}
         </div>
+        <div class="production-analytics-grid" style="margin-top:1.4rem;">
+          ${analyticsChart('Content Library', [
+      ['Videos', stats.videos || 0],
+      ['Notes', stats.notes || 0],
+      ['PYQs', stats.pyqs || 0],
+      ['Subjects', stats.subjects || 0]
+    ], 'Platform content overview')}
+          ${engagementKpis([
+      ['Students', stats.students || 0, 'teal'],
+      ['Creators', stats.creators || 0, 'primary'],
+      ['Sub Admins', stats.subAdmins || stats.subadmins || 0, 'lavender']
+    ])}
+        </div>
       </div>`;
         return;
       }
@@ -2991,6 +3029,19 @@ export function installAiiensProductionExperiencePatch() {
       ['Total Subjects', subjects.length, 'var(--lavender)', 'Real records only'],
       ['Total Regulations', regulations.length, 'var(--amber)', 'Real records only'],
       ['Total Universities', universities.length, 'var(--green)', 'Real records only']
+    ])}
+        </div>
+        <div class="production-analytics-grid" style="margin-top:1.4rem;">
+          ${analyticsChart('Platform Content', [
+      ['Videos', read('edusync_admin_videos', []).length],
+      ['Notes', read('edusync_admin_notes', []).length],
+      ['PYQs', read('edusync_admin_pyqs', []).length],
+      ['IQs', read('edusync_admin_iqs', []).length]
+    ], 'Local content registry')}
+          ${engagementKpis([
+      ['Students', students.length, 'teal'],
+      ['Sub Admins', subAdmins.length, 'primary'],
+      ['URL Requests', read('edusync_url_requests', []).length, 'amber']
     ])}
         </div>
       </div>`;
@@ -3296,6 +3347,11 @@ export function installAiiensProductionExperiencePatch() {
           {
             username,
             password,
+            branch,
+            department,
+            regulation,
+            university,
+            permissions,
             status: 'active'
           }
         ])
@@ -3907,9 +3963,11 @@ export function installLegacyInlineHandlerGlobals() {
 
     const studentDot = document.getElementById('student-notif-dot');
     const creatorDot = document.getElementById('creator-notif-dot');
+    const subadminDot = document.getElementById('subadmin-notif-dot');
 
     if (studentDot) studentDot.style.display = hasUnread ? 'block' : 'none';
     if (creatorDot) creatorDot.style.display = hasUnread ? 'block' : 'none';
+    if (subadminDot) subadminDot.style.display = hasUnread ? 'block' : 'none';
   };
 
   // Run automatically to keep notification dots in sync

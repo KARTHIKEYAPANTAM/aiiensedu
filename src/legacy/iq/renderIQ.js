@@ -1,3 +1,5 @@
+import { isIQBookmarked } from './bookmarks.js';
+
 // Common legacy helpers used across modules
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const js = (value) => String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -36,13 +38,16 @@ export async function renderIQ(subjectId, unitNum) {
     }
   }
 
+  window._currentIQList = customIQs;
+  window._currentIQContext = { subjectId, unitNum: uNum };
+
   listEl.innerHTML = customIQs.length ? customIQs.map((q, i) => `
     <div class="iq-item">
       <div class="iq-header">
         <div class="iq-q">Q${i + 1}. ${q.q} <span style="font-size:0.65rem;background:var(--teal);color:#fff;padding:1px 7px;border-radius:50px;vertical-align:middle;">SUPABASE</span></div>
         <div class="iq-actions">
-          <button class="btn-icon" onclick="showToast('🔖 Bookmarked!','amber')" title="Bookmark">🔖</button>
-          <button class="btn-icon" onclick="showToast('📋 Copied!','blue')" title="Copy">📋</button>
+          <button class="btn-icon ${isIQBookmarked(i) ? 'active' : ''}" onclick="toggleIQBookmark(${i})" title="Bookmark">${isIQBookmarked(i) ? '★' : '🔖'}</button>
+          <button class="btn-icon" onclick="copyIQQuestion(${i})" title="Copy">📋</button>
         </div>
       </div>
       <div class="iq-footer">

@@ -13,12 +13,19 @@ import { installSubAdminFixes } from './legacy/installSubAdminFixes.js';
 import { installAdminSubjectCrud } from './legacy/installAdminSubjectCrud.js';
 import { installIntroSplash } from './legacy/installIntroSplash.js';
 import { installBackButtonFixes } from './legacy/installBackButtonFixes.js';
+import { installInlineHandlerFallbacks } from './legacy/runLegacyScripts.js';
 
 // Apply legacy fixes immediately to define globals
 installBackButtonFixes();
+installInlineHandlerFallbacks();
 installCriticalFixes();
 installSubAdminFixes();
 installAdminSubjectCrud();
 installIntroSplash();
+
+// Production experience patches (admin routing, notifications, live workshops, subadmin CRUD)
+window.installAiiensProductionExperiencePatch?.();
+window.installLegacyInlineHandlerGlobals?.();
+window.installStudentDashboardAndWorkshopPatch?.();
 
 console.log('[main.js] AIIENS Edu bootstrapped successfully.');

@@ -135,6 +135,7 @@ body:not(.intro-playing) #screen-landing.active {
 
 body:not(.intro-playing) #screen-landing.active .role-card,
 body:not(.intro-playing) #screen-landing.active .admin-dropdown-wrap,
+body:not(.intro-playing) #screen-landing.active .admin-icon-btn,
 body:not(.intro-playing) #screen-landing.active .admin-dropdown-item {
   pointer-events: auto;
 }

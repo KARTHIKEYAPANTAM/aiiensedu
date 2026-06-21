@@ -809,7 +809,7 @@ window.v10Esc = window.v10Esc || function(str) {
     window.submitAdminLogin = function submitAdminLoginPersistent() {
       const userid = document.getElementById('admin-userid')?.value.trim();
       const password = document.getElementById('admin-password')?.value.trim();
-      const type = typeof adminLoginType !== 'undefined' ? adminLoginType : 'admin';
+      const type = window.AppState?.adminLoginType || window.adminLoginType || 'admin';
       originalSubmitAdminLogin?.();
       if (type === 'admin') {
         localStorage.setItem('aiiens_admin_session', JSON.stringify({ type: 'admin', username: userid }));
@@ -980,7 +980,7 @@ window.v10Esc = window.v10Esc || function(str) {
       }
       if (mappedSection === 'skillup') {
         closeSASidebar?.();
-        skillUpComingSoon();
+        originalSwitchSASection?.(mappedSection);
         addMenuIcons();
         if (window.location.hash !== '#/subadmin/skillup') {
           window.location.hash = '#/subadmin/skillup';

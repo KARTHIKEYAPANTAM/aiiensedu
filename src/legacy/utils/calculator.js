@@ -17,7 +17,9 @@ export async function initCalc() {
   }
   renderSemTabs();
   renderCalcSemTitle();
-  if (!document.getElementById('calc-tbody').children.length) {
+
+  const calcTbody = document.getElementById('calc-tbody');
+  if (calcTbody && !calcTbody.children.length) {
     const sem = APP.calcSemesters.find(s => s.id === APP.currentSemId);
     if (sem && sem.rows && sem.rows.length) {
       sem.rows.forEach(r => addCalcRow(r.name, r.credits, r.grade));
@@ -62,11 +64,20 @@ export async function initCalc() {
 }
 
 export function clearCalc() {
-  document.getElementById('calc-tbody').innerHTML = '';
+  const calcTbody = document.getElementById('calc-tbody');
+  if (calcTbody) calcTbody.innerHTML = '';
+
   APP.calcRows = [];
-  document.getElementById('sgpa-result').textContent = '–';
-  document.getElementById('sgpa-grade').textContent = 'Calculate to see your grade';
-  document.getElementById('backlog-warn').style.display = 'none';
+
+  const sgpaResult = document.getElementById('sgpa-result');
+  if (sgpaResult) sgpaResult.textContent = '–';
+
+  const sgpaGrade = document.getElementById('sgpa-grade');
+  if (sgpaGrade) sgpaGrade.textContent = 'Calculate to see your grade';
+
+  const backlogWarn = document.getElementById('backlog-warn');
+  if (backlogWarn) backlogWarn.style.display = 'none';
+
   const sem = APP.calcSemesters.find(s => s.id === APP.currentSemId);
   if (sem) { sem.rows = []; sem.sgpa = null; }
   renderSemTabs();
@@ -80,7 +91,9 @@ export async function renderCalc() {
   } else {
     renderSemTabs();
     renderCalcSemTitle();
-    if (!document.getElementById('calc-tbody').children.length) {
+
+    const calcTbody = document.getElementById('calc-tbody');
+    if (calcTbody && !calcTbody.children.length) {
       const sem = APP.calcSemesters.find(s => s.id === APP.currentSemId);
       if (sem && sem.rows.length) {
         sem.rows.forEach(r => addCalcRow(r.name, r.credits, r.grade));
@@ -92,7 +105,10 @@ export async function renderCalc() {
 }
 
 export function calculateGPA() {
-  const rows = document.querySelectorAll('#calc-tbody tr');
+  const calcTbody = document.getElementById('calc-tbody');
+  if (!calcTbody) return;
+
+  const rows = calcTbody.querySelectorAll('tr');
   let totalPoints = 0, totalCredits = 0;
   const failed = [], gradeCount = {};
   rows.forEach(row => {
@@ -114,12 +130,16 @@ export function calculateGPA() {
   saveCurrentSemRows();
   renderSemTabs();
 
-  document.getElementById('sgpa-result').textContent = sgpa.toFixed(2);
+  const sgpaResult = document.getElementById('sgpa-result');
+  if (sgpaResult) sgpaResult.textContent = sgpa.toFixed(2);
+
   // Real CGPA = average of all calculated sems
   const calcdSems = APP.calcSemesters.filter(s => s.sgpa !== null);
   if (calcdSems.length > 0) {
     const cgpa = Math.min(10, calcdSems.reduce((s, x) => s + x.sgpa, 0) / calcdSems.length);
-    document.getElementById('cgpa-result').textContent = cgpa.toFixed(2);
+    const cgpaResult = document.getElementById('cgpa-result');
+    if (cgpaResult) cgpaResult.textContent = cgpa.toFixed(2);
+
     const summaryEl = document.getElementById('all-sems-summary');
     const listEl = document.getElementById('all-sems-list');
     if (summaryEl && listEl && calcdSems.length > 1) {
@@ -134,36 +154,44 @@ export function calculateGPA() {
         '<span style="color:var(--teal);font-weight:800;">' + cgpa.toFixed(2) + '</span></div>';
     }
   } else {
-    document.getElementById('cgpa-result').textContent = sgpa.toFixed(2);
+    const cgpaResult = document.getElementById('cgpa-result');
+    if (cgpaResult) cgpaResult.textContent = sgpa.toFixed(2);
   }
   saveCalcState();
   const gradeLabel = sgpa >= 9 ? 'Outstanding 🏆' : sgpa >= 8 ? 'Excellent 🌟' : sgpa >= 7 ? 'Very Good 👍' : sgpa >= 6 ? 'Good ✅' : sgpa >= 5 ? 'Average ⚠️' : 'Needs Improvement 📚';
-  document.getElementById('sgpa-grade').textContent = gradeLabel;
+  const sgpaGrade = document.getElementById('sgpa-grade');
+  if (sgpaGrade) sgpaGrade.textContent = gradeLabel;
 
   // Grade distribution bars
   const colors = { O: 'var(--green)', 'A+': 'var(--teal)', A: 'var(--primary)', 'B+': 'var(--lavender)', B: 'var(--amber)', C: '#f97316', F: 'var(--red)' };
   const maxCount = Math.max(...Object.values(gradeCount), 1);
-  document.getElementById('grade-dist').innerHTML = `
-    <div style="display:flex;gap:4px;align-items:flex-end;height:60px;margin-bottom:6px;">
-      ${Object.entries(GRADES).map(([g]) => {
-    const cnt = gradeCount[g] || 0;
-    const h = cnt ? Math.max(8, (cnt / maxCount) * 52) : 0;
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
-          <div style="width:100%;height:${h}px;border-radius:4px 4px 0 0;background:${colors[g] || 'var(--border)'};transition:height 0.5s;"></div>
-          <div style="font-size:0.65rem;font-weight:700;color:var(--text3);">${g}</div>
-        </div>`;
-  }).join('')}
-    </div>`;
+  const gradeDist = document.getElementById('grade-dist');
+  if (gradeDist) {
+    gradeDist.innerHTML = `
+      <div style="display:flex;gap:4px;align-items:flex-end;height:60px;margin-bottom:6px;">
+        ${Object.entries(GRADES).map(([g]) => {
+      const cnt = gradeCount[g] || 0;
+      const h = cnt ? Math.max(8, (cnt / maxCount) * 52) : 0;
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <div style="width:100%;height:${h}px;border-radius:4px 4px 0 0;background:${colors[g] || 'var(--border)'};transition:height 0.5s;"></div>
+            <div style="font-size:0.65rem;font-weight:700;color:var(--text3);">${g}</div>
+          </div>`;
+    }).join('')}
+      </div>`;
+  }
 
   // Backlogs
+  const backlogBadge = document.getElementById('backlog-badge');
+  const backlogWarn = document.getElementById('backlog-warn');
+  const backlogWarnSubjects = document.getElementById('backlog-warn-subjects');
   if (failed.length > 0) {
     APP.backlogSubjects = [...new Set([...APP.backlogSubjects, ...failed])];
-    document.getElementById('backlog-badge').textContent = APP.backlogSubjects.length;
-    document.getElementById('backlog-warn').style.display = 'block';
-    document.getElementById('backlog-warn-subjects').textContent = `Subjects moved to Backlog: ${failed.join(', ')}`;
+    if (backlogBadge) backlogBadge.textContent = APP.backlogSubjects.length;
+    if (backlogWarn) backlogWarn.style.display = 'block';
+    if (backlogWarnSubjects) backlogWarnSubjects.textContent = `Subjects moved to Backlog: ${failed.join(', ')}`;
     showToast(`⚠️ ${failed.length} backlog subject(s) detected!`, 'red');
-  } else {
-    document.getElementById('backlog-warn').style.display = 'none';
+  } else if (backlogWarn) {
+    backlogWarn.style.display = 'none';
     showToast(`✅ SGPA: ${sgpa} — Great work!`, 'green');
   }
 }

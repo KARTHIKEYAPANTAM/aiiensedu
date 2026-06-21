@@ -24,13 +24,15 @@ export async function adminCreateSubAdmin() {
   subAdmins.push({ username, password, branch, createdAt: new Date().toLocaleString() });
   localStorage.setItem('edusync_subadmins', JSON.stringify(subAdmins));
   console.log('STARTING SUBADMIN INSERT', username);
-  if (window.supabase) {
-    const { data, error } = await window.supabase
+  const client = window.__AIMEASY_SUPABASE__ || window.supabase;
+  if (client) {
+    const { data, error } = await client
       .from('sub_admin_accounts')
       .insert([
         {
           username,
           password,
+          branch,
           status: 'active'
         }
       ])
@@ -291,7 +293,9 @@ export function closeCreateSubAdminModal() {
 }
 
 export async function renderExistingSubAdmins() {
-  const { data: subAdmins, error } = await window.supabase
+  const client = window.__AIMEASY_SUPABASE__ || window.supabase;
+  if (!client) return;
+  const { data: subAdmins, error } = await client
     .from('sub_admin_accounts')
     .select('*');
 

@@ -98,7 +98,11 @@ async function main() {
       console.error(`Curriculum schema check failed for ${table}.`);
       console.error(`Error code: ${tableCheck.error.code}`);
       console.error(`Error message: ${formatError(tableCheck.error)}`);
-      console.error('Run supabase/schema.sql in your Supabase SQL editor.');
+      if (String(tableCheck.error.message || '').includes('permission denied')) {
+        console.error('Apply supabase/migrations/20260621000000_curriculum_table_grants.sql in Supabase SQL Editor.');
+      } else {
+        console.error('Run supabase/schema.sql in your Supabase SQL editor.');
+      }
       process.exitCode = 1;
       return;
     }
@@ -143,6 +147,19 @@ async function main() {
 
   console.log('Curriculum schema contains subjects, units, topics, topic_videos, and content_items.');
   console.log('SELECT * FROM topics and SELECT * FROM topic_videos both execute successfully.');
+
+  for (const table of ['admin_accounts', 'sub_admin_accounts']) {
+    const tableCheck = await supabase.from(table).select('id,username,password,status', { count: 'exact', head: true });
+    if (tableCheck.error) {
+      console.error(`Admin schema check failed for ${table}.`);
+      console.error(`Error code: ${tableCheck.error.code}`);
+      console.error(`Error message: ${formatError(tableCheck.error)}`);
+      console.error('Apply supabase/migrations/20260622000000_admin_accounts.sql in Supabase SQL Editor.');
+      process.exitCode = 1;
+      return;
+    }
+  }
+  console.log('Admin portal tables admin_accounts and sub_admin_accounts are accessible.');
 }
 
 main().catch((error) => {

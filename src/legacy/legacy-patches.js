@@ -1692,6 +1692,27 @@ async function renderCRDashboard() {
           <button class="btn btn-teal" onclick="switchCRSection('addcontent')">📤 Add Content</button>
         </div>
       </div>
+      <div class="card" style="margin-bottom:1rem;">
+        <h3 style="margin-bottom:1rem;font-size:1rem;">📊 Content Analytics</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">
+          <div style="padding:12px;background:var(--surface2);border-radius:var(--radius-sm);text-align:center;">
+            <div style="font-size:1.4rem;font-weight:800;color:var(--teal);">${vidCount}</div>
+            <div style="font-size:0.75rem;color:var(--text3);">Videos</div>
+          </div>
+          <div style="padding:12px;background:var(--surface2);border-radius:var(--radius-sm);text-align:center;">
+            <div style="font-size:1.4rem;font-weight:800;color:var(--lavender);">${noteCount}</div>
+            <div style="font-size:0.75rem;color:var(--text3);">Notes</div>
+          </div>
+          <div style="padding:12px;background:var(--surface2);border-radius:var(--radius-sm);text-align:center;">
+            <div style="font-size:1.4rem;font-weight:800;color:var(--amber);">${pyqCount}</div>
+            <div style="font-size:0.75rem;color:var(--text3);">PYQs</div>
+          </div>
+          <div style="padding:12px;background:var(--surface2);border-radius:var(--radius-sm);text-align:center;">
+            <div style="font-size:1.4rem;font-weight:800;color:var(--primary);">${subjCount}</div>
+            <div style="font-size:0.75rem;color:var(--text3);">Subjects</div>
+          </div>
+        </div>
+      </div>
       ${subjCount === 0 ? `
       <div class="card" style="text-align:center;padding:2rem;background:var(--amber-light);border-color:var(--amber);">
         <div style="font-size:2rem;margin-bottom:6px;">⚠️</div>
