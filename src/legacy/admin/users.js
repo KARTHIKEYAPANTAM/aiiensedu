@@ -33,6 +33,10 @@ export async function adminCreateSubAdmin() {
           username,
           password,
           branch,
+          department: 'Academics',
+          regulation: null,
+          university: null,
+          permissions: ['subjects', 'units', 'content'],
           status: 'active'
         }
       ])

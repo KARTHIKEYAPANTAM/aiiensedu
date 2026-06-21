@@ -479,35 +479,24 @@ export async function fetchCurriculumStats(created_by_subadmin_id = null) {
 export async function fetchSubjects(filters = {}) {
   if (!supabase) return { data: [], error: new Error('Supabase not configured') };
 
-  // Debug: log Supabase URL and session to verify correct client
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  console.log('[DEBUG] fetchSubjects called', { supabaseUrl, filters });
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    console.log('[DEBUG] fetchSubjects session user', session?.user?.id ?? 'anonymous');
-  } catch (e) {
-    console.warn('[DEBUG] fetchSubjects session error', e);
-  }
-
-  // Fetch ALL subjects (unfiltered) first for debugging
-  const { data: allSubjects, error: allErr } = await supabase.from('subjects').select('*');
-  console.log('ALL SUBJECTS', allSubjects);
-  console.log('ALL SUBJECTS ERROR', allErr);
+  const activeBranch =
+    filters.branch ||
+    window?.APP?.subAdminData?.branch ||
+    window?.APP?.user?.branch ||
+    window?.APP?.user?.branch_name ||
+    window?.__AIIENS_CURRENT_BRANCH__ ||
+    localStorage?.getItem('aiiens_current_branch') ||
+    '';
 
   const { university_name, branch, regulation_code, semester, created_by_subadmin_id } = filters;
-  console.log('Subject Filters', { university_name, branch, regulation_code, semester, created_by_subadmin_id });
-
-  // Build filtered query — only apply filters when values are present
   let q = supabase.from('subjects').select('*').order('name', { ascending: true });
   if (semester) q = q.eq('semester', semester);
-  if (branch) q = q.eq('branch', branch);
+  if (branch || activeBranch) q = q.eq('branch', branch || activeBranch);
   if (regulation_code) q = q.eq('regulation_code', regulation_code);
   if (university_name) q = q.eq('university_name', university_name);
   if (created_by_subadmin_id) q = q.eq('created_by', created_by_subadmin_id);
 
   const { data: subjects, error } = await q;
-  console.log('Filtered Subjects', subjects);
-
   return { data: subjects || [], error };
 }
 

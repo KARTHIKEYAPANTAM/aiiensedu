@@ -806,11 +806,11 @@ window.v10Esc = window.v10Esc || function(str) {
 
   if (!window.submitAdminLogin?.isPatched) {
     const originalSubmitAdminLogin = window.submitAdminLogin;
-    window.submitAdminLogin = function submitAdminLoginPersistent() {
+    window.submitAdminLogin = async function submitAdminLoginPersistent() {
       const userid = document.getElementById('admin-userid')?.value.trim();
       const password = document.getElementById('admin-password')?.value.trim();
       const type = window.AppState?.adminLoginType || window.adminLoginType || 'admin';
-      originalSubmitAdminLogin?.();
+      const result = await originalSubmitAdminLogin?.();
       if (type === 'admin') {
         localStorage.setItem('aiiens_admin_session', JSON.stringify({ type: 'admin', username: userid }));
       }
@@ -820,6 +820,7 @@ window.v10Esc = window.v10Esc || function(str) {
           localStorage.setItem('aiiens_admin_session', JSON.stringify({ type: subAdmin.role === 'content_creator' ? 'content_creator' : 'subadmin', data: subAdmin }));
         }
       }
+      return result;
     };
     window.submitAdminLogin.isPatched = true;
   }

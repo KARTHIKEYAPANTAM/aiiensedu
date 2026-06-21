@@ -1,9 +1,17 @@
+import { persistLegacyAdminSession } from '../../utils/adminSessionStorage.js';
+
 // Common legacy helpers used across modules
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const js = (value) => String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 const sb = () => window.__AIMEASY_SUPABASE__;
 const todayKeyDb = (date = new Date()) => date.toISOString().slice(0, 10);
 const pctFromCgpa = (cgpa) => Math.max(0, Math.min(100, Number(cgpa || 0) * 9.5));
+
+function setLoginError(el, message) {
+  if (!el) return;
+  el.style.display = 'block';
+  el.textContent = message;
+}
 
 function setAdminLoginType(type) {
   if (window.AppState) window.AppState.adminLoginType = type;
@@ -67,16 +75,21 @@ export async function submitAdminLogin() {
   const pwd = document.getElementById('admin-password')?.value?.trim() || '';
   const err = document.getElementById('admin-login-err');
   const client = window.__AIMEASY_SUPABASE__;
+  const loginType = getAdminLoginType();
 
   if (!client) {
-    if (err) {
-      err.style.display = 'block';
-      err.innerHTML = '❌ Supabase client not initialized';
-    }
+    console.error('[ADMIN LOGIN] modal failure: Supabase client not initialized');
+    setLoginError(err, '❌ Supabase client not initialized');
     return;
   }
 
-  if (getAdminLoginType() === 'admin') {
+  if (!uid || !pwd) {
+    console.error('[ADMIN LOGIN] modal failure: missing username or password');
+    setLoginError(err, '❌ Please enter both username and password');
+    return;
+  }
+
+  if (loginType === 'admin') {
     const { data: admin, error } = await client
       .from('admin_accounts')
       .select('*')
@@ -85,14 +98,17 @@ export async function submitAdminLogin() {
       .eq('status', 'active')
       .single();
 
-    console.log('ADMIN LOGIN RESULT', admin);
-    console.log('ADMIN LOGIN ERROR', error);
+    console.log('[ADMIN LOGIN] admin query result', { uid, hasData: Boolean(admin), error });
 
-    if (error || !admin) {
-      if (err) {
-        err.style.display = 'block';
-        err.innerHTML = '❌ Invalid Admin username or password';
-      }
+    if (error) {
+      console.error('[ADMIN LOGIN] query failure:', error?.message || error);
+      setLoginError(err, `❌ Query failed: ${error?.message || error}`);
+      return;
+    }
+
+    if (!admin) {
+      console.error('[ADMIN LOGIN] credential mismatch:', { uid });
+      setLoginError(err, '❌ Invalid admin username or password');
       return;
     }
 
@@ -105,13 +121,11 @@ export async function submitAdminLogin() {
       window.APP.session = true;
     }
 
-    localStorage.setItem(
-      'edusync_admin_session',
-      JSON.stringify({
-        type: 'admin',
-        username: admin.username
-      })
-    );
+    persistLegacyAdminSession({
+      type: 'admin',
+      username: admin.username,
+      data: admin,
+    });
 
     closeAdminLogin();
 
@@ -119,39 +133,89 @@ export async function submitAdminLogin() {
 
     window.setTimeout(() => {
       window.hideLoading?.();
+      if (typeof window.launchAdminDashboard !== 'function') {
+        console.error('[ADMIN LOGIN] dashboard launch failure: launchAdminDashboard missing');
+        setLoginError(err, '❌ Dashboard launch failed: admin dashboard handler is unavailable');
+        return;
+      }
       window.launchAdminDashboard?.();
     }, 800);
   } else {
-    const { data: match, error: subAdminError } = await client
+    console.log('LOGIN USERNAME', uid);
+    console.log('LOGIN PASSWORD', pwd);
+
+    const rawQuery = client
       .from('sub_admin_accounts')
       .select('*')
       .eq('username', uid)
       .eq('password', pwd)
-      .eq('status', 'active')
-      .single();
+      .eq('status', 'active');
 
-    if (match) {
-      if (err) err.style.display = 'none';
-      if (window.APP) {
-        window.APP.role = 'subadmin';
-        window.APP.adminType = 'subadmin';
-        window.APP.subAdminData = match;
-        window.APP.session = true;
-      }
-      closeAdminLogin();
-      window.showLoading?.('Logging in as Sub Admin...');
-      window.setTimeout(() => {
-        window.hideLoading?.();
-        window.launchSubAdmin?.();
-      }, 800);
-    } else {
-      if (err) {
-        err.style.display = 'block';
-        err.innerHTML = '❌ Invalid Sub Admin username or password';
-      }
-      const passwordInput = document.getElementById('admin-password');
-      if (passwordInput) passwordInput.value = '';
+    const { data, error: subError } = await rawQuery;
+    const rowCount = Array.isArray(data) ? data.length : null;
+
+    console.log('[ADMIN LOGIN] sub-admin query result before single', {
+      username: uid,
+      password: pwd,
+      rowCount,
+      data,
+      error: subError,
+    });
+
+    if (subError) {
+      console.error('[ADMIN LOGIN] sub-admin query failure:', subError?.message || subError);
+      setLoginError(err, `❌ Query failed: ${subError?.message || subError}`);
+      return;
     }
+
+    if (!Array.isArray(data) || rowCount === 0) {
+      console.error('[ADMIN LOGIN] sub-admin credential mismatch:', { uid, rowCount, data });
+      setLoginError(err, '❌ Invalid sub-admin username or password');
+      return;
+    }
+
+    if (rowCount > 1) {
+      console.error('[ADMIN LOGIN] duplicate sub-admin rows detected:', { uid, rowCount, data });
+      setLoginError(err, '❌ Multiple matching sub-admin accounts found');
+      return;
+    }
+
+    const match = data[0];
+
+    if (err) err.style.display = 'none';
+    if (window.APP) {
+      window.APP.role = 'subadmin';
+      window.APP.adminType = 'subadmin';
+      window.APP.subAdminData = match;
+      window.APP.user = match;
+      window.APP.session = true;
+    }
+
+    persistLegacyAdminSession({
+      type: 'subadmin',
+      username: match.username,
+      data: match,
+    });
+
+    const stored = JSON.parse(localStorage.getItem('edusync_admin_session') || '{}');
+    console.log('[ADMIN LOGIN] session created', stored);
+    if (!stored?.type || !stored?.username) {
+      console.error('[ADMIN LOGIN] missing session after login');
+      setLoginError(err, '❌ Session creation failed');
+      return;
+    }
+
+    closeAdminLogin();
+    window.showLoading?.('Logging in as Sub Admin...');
+    window.setTimeout(() => {
+      window.hideLoading?.();
+      if (typeof window.launchSubAdmin !== 'function') {
+        console.error('[ADMIN LOGIN] dashboard launch failure: launchSubAdmin missing');
+        setLoginError(err, '❌ Dashboard launch failed: sub-admin dashboard handler is unavailable');
+        return;
+      }
+      window.launchSubAdmin?.();
+    }, 800);
   }
 }
 

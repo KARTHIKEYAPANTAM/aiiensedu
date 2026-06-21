@@ -5488,6 +5488,11 @@ window.aimSendCurriculumForReview = async function aimSendCurriculumForReview(cu
           {
             username,
             password,
+            branch,
+            department,
+            regulation,
+            university,
+            permissions,
             status: 'active'
           }
         ])
