@@ -1,0 +1,4 @@
+
+ALTER TABLE public.curriculums
+ADD COLUMN IF NOT EXISTS year TEXT,
+ADD COLUMN IF NOT EXISTS credits TEXT;

@@ -1,0 +1,33 @@
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+const APP = {
+  role: 'student',
+  user: null,
+  session: false,
+  currentSubject: null,
+  currentUnit: null,
+  currentVideoIndex: 0,
+  markedReviews: new Set(),
+  backlogSubjects: [],
+  calcRows: [],
+  chatOpen: false,
+  calcSemesters: [],
+  currentSemId: null,
+  adminType: null,
+  subAdminData: null,
+};
+window.APP = APP;
+
+window.renderUploadedIQList = globalThis.renderUploadedIQList = renderUploadedIQList;
+window.deleteAdminIQ = globalThis.deleteAdminIQ = deleteAdminIQ;
+window.renderUploadedVideosList = globalThis.renderUploadedVideosList = renderUploadedVideosList;
+window.deleteAdminVideo = globalThis.deleteAdminVideo = deleteAdminVideo;
+window.renderSAUrlRequests = globalThis.renderSAUrlRequests = renderSAUrlRequests;
+window.toggleSASidebar = globalThis.toggleSASidebar = toggleSASidebar;
+window.closeSASidebar = globalThis.closeSASidebar = closeSASidebar;
+window.switchSASection = globalThis.switchSASection = switchSASection;
+window.launchSubAdmin = globalThis.launchSubAdmin = launchSubAdmin;
+window.renderSASection = globalThis.renderSASection = renderSASection;
+window.renderAdminSectionFull = globalThis.renderAdminSectionFull = renderAdminSectionFull;
+window.adminOpenSubject = globalThis.adminOpenSubject = adminOpenSubject;
